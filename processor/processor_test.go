@@ -38,126 +38,96 @@ func TestProcessor_Execute(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Run("slice", func(t *testing.T) {
 			t.Run("last batch is less then batch size", func(t *testing.T) {
-				type batchResult struct {
-					nums     []int
-					batchIdx int
-				}
-
 				p, _ := New(2)
 				nums := []int{5, 6, 7, 8, 9}
-				batchResults := []batchResult{}
-				err := p.Execute(context.Background(), nums, func(batch interface{}, batchIdx int) {
-					batchData := batch.([]int)
-					batchResults = append(batchResults, batchResult{nums: batchData, batchIdx: batchIdx})
+				batchResults := []Batch{}
+				err := p.Execute(context.Background(), nums, func(batch Batch) {
+					batchResults = append(batchResults, batch)
 				})
 				assert.NoError(t, err)
-				assert.EqualValues(t, []batchResult{
-					batchResult{
-						nums:     []int{5, 6},
-						batchIdx: 0,
+				assert.EqualValues(t, []Batch{
+					Batch{
+						data:  []int{5, 6},
+						index: 0,
 					},
-					batchResult{
-						nums:     []int{7, 8},
-						batchIdx: 1,
+					Batch{
+						data:  []int{7, 8},
+						index: 1,
 					},
-					batchResult{
-						nums:     []int{9},
-						batchIdx: 2,
+					Batch{
+						data:  []int{9},
+						index: 2,
 					},
 				}, batchResults)
 			})
 
 			t.Run("last batch is equal batch size", func(t *testing.T) {
-				type batchResult struct {
-					nums     []int
-					batchIdx int
-				}
-
 				p, _ := New(2)
 				nums := []int{5, 6, 7, 8}
-				batchResults := []batchResult{}
-				err := p.Execute(context.Background(), nums, func(batch interface{}, batchIdx int) {
-					batchData := batch.([]int)
-					batchResults = append(batchResults, batchResult{nums: batchData, batchIdx: batchIdx})
+				batchResults := []Batch{}
+				err := p.Execute(context.Background(), nums, func(batch Batch) {
+					batchResults = append(batchResults, batch)
 				})
 				assert.NoError(t, err)
-				assert.EqualValues(t, []batchResult{
-					batchResult{
-						nums:     []int{5, 6},
-						batchIdx: 0,
+				assert.EqualValues(t, []Batch{
+					Batch{
+						data:  []int{5, 6},
+						index: 0,
 					},
-					batchResult{
-						nums:     []int{7, 8},
-						batchIdx: 1,
+					Batch{
+						data:  []int{7, 8},
+						index: 1,
 					},
 				}, batchResults)
 			})
 
 			t.Run("empty data", func(t *testing.T) {
-				type batchResult struct {
-					nums     []int
-					batchIdx int
-				}
-
 				p, _ := New(2)
 				nums := []int{}
-				batchResults := []batchResult{}
-				err := p.Execute(context.Background(), nums, func(batch interface{}, batchIdx int) {
-					batchData := batch.([]int)
-					batchResults = append(batchResults, batchResult{nums: batchData, batchIdx: batchIdx})
+				batchResults := []Batch{}
+				err := p.Execute(context.Background(), nums, func(batch Batch) {
+					batchResults = append(batchResults, batch)
 				})
 				assert.NoError(t, err)
-				assert.EqualValues(t, []batchResult{}, batchResults)
+				assert.EqualValues(t, []Batch{}, batchResults)
 			})
 
 			t.Run("cancel", func(t *testing.T) {
-				type batchResult struct {
-					nums     []int
-					batchIdx int
-				}
-
 				p, _ := New(2)
 				nums := []int{5, 6, 7, 8, 9}
-				batchResults := []batchResult{}
+				batchResults := []Batch{}
 				err := p.Execute(func() context.Context {
 					ctx, cancel := context.WithCancel(context.Background())
 					cancel()
 					return ctx
-				}(), nums, func(batch interface{}, batchIdx int) {
-					batchData := batch.([]int)
-					batchResults = append(batchResults, batchResult{nums: batchData, batchIdx: batchIdx})
+				}(), nums, func(batch Batch) {
+					batchResults = append(batchResults, batch)
 				})
 				assert.EqualError(t, err, ErrCanceled.Error())
-				assert.EqualValues(t, []batchResult{}, batchResults)
+				assert.EqualValues(t, []Batch{}, batchResults)
 			})
 		})
 
 		t.Run("pointer of slice", func(t *testing.T) {
-			type batchResult struct {
-				nums     *[]int
-				batchIdx int
-			}
-
 			p, _ := New(2)
 			nums := &[]int{5, 6, 7, 8, 9}
-			batchResults := []batchResult{}
-			err := p.Execute(context.Background(), nums, func(batch interface{}, batchIdx int) {
-				batchData := batch.(*[]int)
-				batchResults = append(batchResults, batchResult{nums: batchData, batchIdx: batchIdx})
+			batchResults := []Batch{}
+			err := p.Execute(context.Background(), nums, func(batch Batch) {
+				batchResults = append(batchResults, batch)
 			})
 			assert.NoError(t, err)
-			assert.EqualValues(t, []batchResult{
-				batchResult{
-					nums:     &[]int{5, 6},
-					batchIdx: 0,
+			assert.EqualValues(t, []Batch{
+				Batch{
+					data:  &[]int{5, 6},
+					index: 0,
 				},
-				batchResult{
-					nums:     &[]int{7, 8},
-					batchIdx: 1,
+				Batch{
+					data:  &[]int{7, 8},
+					index: 1,
 				},
-				batchResult{
-					nums:     &[]int{9},
-					batchIdx: 2,
+				Batch{
+					data:  &[]int{9},
+					index: 2,
 				},
 			}, batchResults)
 		})

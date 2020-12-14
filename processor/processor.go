@@ -14,6 +14,22 @@ var (
 	ErrCanceled         = fmt.Errorf("canceled")
 )
 
+// Batch is batch of data
+type Batch struct {
+	data  interface{} // data of batch
+	index int         // batch index
+}
+
+// Data return data of batch
+func (b *Batch) Data() interface{} {
+	return b.data
+}
+
+// Index return index of batch
+func (b *Batch) Index() int {
+	return b.index
+}
+
 // Processor struct to execute data by batch
 type Processor struct {
 	m         *sync.Mutex
@@ -35,7 +51,7 @@ func New(batchSize int) (*Processor, error) {
 // batchIndex will help full whenn you need to convert index of item from current batch to original index of source object.
 // error: 1. if objects is not sliceable will return error
 // error: 2. error cancel return when it receive cancel singal from context and it will stop for next batch processing
-func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProcess func(batch interface{}, batchIndex int)) error {
+func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProcess func(batch Batch)) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -77,19 +93,21 @@ func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProces
 				return nil
 			}
 
-			batch := concreteSliceValue.Slice(i, j)
+			batchData := concreteSliceValue.Slice(i, j)
 			if isPointer {
 				out := reflect.New(reflect.TypeOf(concreteSliceValue.Interface()))
-				out.Elem().Set(batch)
-				funcProcess(out.Interface(), nextBatchIdx-1)
+				out.Elem().Set(batchData)
+				batch := Batch{data: out.Interface(), index: nextBatchIdx - 1}
+				funcProcess(batch)
 			} else {
-				funcProcess(batch.Interface(), nextBatchIdx-1)
+				batch := Batch{data: batchData.Interface(), index: nextBatchIdx - 1}
+				funcProcess(batch)
 			}
 		}
 	}
 }
 
 // OriginalIndex help to convert index of item in that batch to original source
-func (p *Processor) OriginalIndex(batchNum, itemIdx int) int {
-	return (batchNum * p.batchSize) + itemIdx
+func (p *Processor) OriginalIndex(batchIndex, itemIndex int) int {
+	return (batchIndex * p.batchSize) + itemIndex
 }
