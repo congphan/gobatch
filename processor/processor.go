@@ -11,7 +11,6 @@ import (
 var (
 	ErrInvalidBatchSize = fmt.Errorf("batch size must be positive integer")
 	ErrNotSliceable     = fmt.Errorf("object not sliceable")
-	ErrCanceled         = fmt.Errorf("canceled")
 )
 
 // Batch is batch of data
@@ -48,9 +47,10 @@ func New(batchSize int) (*Processor, error) {
 }
 
 // Execute process objects by batch by calling funcProcess: batch is a batch of data, batchIndex is index of batch.
-// batchIndex will help full whenn you need to convert index of item from current batch to original index of source object.
-// error: 1. if objects is not sliceable will return error
-// error: 2. error cancel return when it receive cancel singal from context and it will stop for next batch processing
+// batchIndex will help ful whenn you need to convert index of item from current batch to original index of source object.
+// error: 1. if objects is not sliceable will return ErrNotSliceable
+// error: 2. error context.Canceled return when it receive cancel singal from context and it will stop for next batch processing
+// error: 3. error context.DeadlineExceeded return when the context's deadline passes (timeout)
 func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProcess func(batch Batch)) error {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -85,7 +85,7 @@ func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProces
 	for {
 		select {
 		case <-ctx.Done():
-			return ErrCanceled
+			return ctx.Err()
 		default:
 			i, j := getIndicesOfNextBatch()
 			if i >= length {
@@ -94,15 +94,15 @@ func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProces
 			}
 
 			batchData := concreteSliceValue.Slice(i, j)
+			var batch Batch
 			if isPointer {
 				out := reflect.New(reflect.TypeOf(concreteSliceValue.Interface()))
 				out.Elem().Set(batchData)
-				batch := Batch{data: out.Interface(), index: nextBatchIdx - 1}
-				funcProcess(batch)
+				batch = Batch{data: out.Interface(), index: nextBatchIdx - 1}
 			} else {
-				batch := Batch{data: batchData.Interface(), index: nextBatchIdx - 1}
-				funcProcess(batch)
+				batch = Batch{data: batchData.Interface(), index: nextBatchIdx - 1}
 			}
+			funcProcess(batch)
 		}
 	}
 }

@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,15 +47,15 @@ func TestProcessor_Execute(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.EqualValues(t, []Batch{
-					Batch{
+					{
 						data:  []int{5, 6},
 						index: 0,
 					},
-					Batch{
+					{
 						data:  []int{7, 8},
 						index: 1,
 					},
-					Batch{
+					{
 						data:  []int{9},
 						index: 2,
 					},
@@ -70,11 +71,11 @@ func TestProcessor_Execute(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.EqualValues(t, []Batch{
-					Batch{
+					{
 						data:  []int{5, 6},
 						index: 0,
 					},
-					Batch{
+					{
 						data:  []int{7, 8},
 						index: 1,
 					},
@@ -103,8 +104,24 @@ func TestProcessor_Execute(t *testing.T) {
 				}(), nums, func(batch Batch) {
 					batchResults = append(batchResults, batch)
 				})
-				assert.EqualError(t, err, ErrCanceled.Error())
+				assert.EqualError(t, err, context.Canceled.Error())
 				assert.EqualValues(t, []Batch{}, batchResults)
+			})
+
+			t.Run("timeout", func(t *testing.T) {
+				timeout := time.Millisecond * 30
+				p, _ := New(2)
+				nums := []int{5, 6, 7, 8, 9}
+				batchResults := []Batch{}
+
+				ctx, cancel := context.WithTimeout(context.Background(), timeout)
+				defer cancel()
+				err := p.Execute(ctx, nums, func(batch Batch) {
+					batchResults = append(batchResults, batch)
+					time.Sleep(timeout * 2)
+				})
+				assert.EqualError(t, err, context.DeadlineExceeded.Error())
+				assert.EqualValues(t, []Batch{{data: []int{5, 6}, index: 0}}, batchResults)
 			})
 		})
 
@@ -117,15 +134,15 @@ func TestProcessor_Execute(t *testing.T) {
 			})
 			assert.NoError(t, err)
 			assert.EqualValues(t, []Batch{
-				Batch{
+				{
 					data:  &[]int{5, 6},
 					index: 0,
 				},
-				Batch{
+				{
 					data:  &[]int{7, 8},
 					index: 1,
 				},
-				Batch{
+				{
 					data:  &[]int{9},
 					index: 2,
 				},
