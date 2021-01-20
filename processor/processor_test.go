@@ -110,18 +110,23 @@ func TestProcessor_Execute(t *testing.T) {
 
 			t.Run("timeout", func(t *testing.T) {
 				timeout := time.Millisecond * 30
+				sleepDuration := timeout * 2
 				p, _ := New(2)
 				nums := []int{5, 6, 7, 8, 9}
 				batchResults := []Batch{}
 
 				ctx, cancel := context.WithTimeout(context.Background(), timeout)
 				defer cancel()
+
+				start := time.Now()
 				err := p.Execute(ctx, nums, func(batch Batch) {
 					batchResults = append(batchResults, batch)
-					time.Sleep(timeout * 2)
+					time.Sleep(sleepDuration)
 				})
+				taken := time.Since(start)
 				assert.EqualError(t, err, context.DeadlineExceeded.Error())
 				assert.EqualValues(t, []Batch{{data: []int{5, 6}, index: 0}}, batchResults)
+				assert.True(t, taken.Milliseconds() < sleepDuration.Milliseconds()) // expected time executed must lest then sleep duration
 			})
 		})
 

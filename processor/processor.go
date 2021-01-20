@@ -46,12 +46,24 @@ func New(batchSize int) (*Processor, error) {
 	}, nil
 }
 
+// FuncProcess provide signature for function to prcess batch of data
+type FuncProcess func(batch Batch)
+
 // Execute process objects by batch by calling funcProcess: batch is a batch of data, batchIndex is index of batch.
 // batchIndex will help ful whenn you need to convert index of item from current batch to original index of source object.
 // error: 1. if objects is not sliceable will return ErrNotSliceable
 // error: 2. error context.Canceled return when it receive cancel singal from context and it will stop for next batch processing
 // error: 3. error context.DeadlineExceeded return when the context's deadline passes (timeout)
-func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProcess func(batch Batch)) error {
+func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProcess FuncProcess) error {
+	executeFuncProcess := func(batch Batch) chan struct{} {
+		done := make(chan struct{})
+		go func() {
+			funcProcess(batch)
+			done <- struct{}{}
+		}()
+		return done
+	}
+
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -102,7 +114,13 @@ func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProces
 			} else {
 				batch = Batch{data: batchData.Interface(), index: nextBatchIdx - 1}
 			}
-			funcProcess(batch)
+
+			chDone := executeFuncProcess(batch)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-chDone: // done for a batch
+			}
 		}
 	}
 }
