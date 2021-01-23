@@ -154,40 +154,4 @@ func TestProcessor_Execute(t *testing.T) {
 			}, batchResults)
 		})
 	})
-
-	t.Run("OriginalIndex", func(t *testing.T) {
-		t.Run("even batch size", func(t *testing.T) {
-			p, _ := New(2)
-			t.Run("batch 0, index 0", func(t *testing.T) {
-				assert.Equal(t, 0, p.OriginalIndex(0, 0))
-			})
-			t.Run("batch 0, index 1", func(t *testing.T) {
-				assert.Equal(t, 1, p.OriginalIndex(0, 1))
-			})
-
-			t.Run("batch 1, index 0", func(t *testing.T) {
-				assert.Equal(t, 2, p.OriginalIndex(1, 0))
-			})
-			t.Run("batch 1, index 1", func(t *testing.T) {
-				assert.Equal(t, 3, p.OriginalIndex(1, 1))
-			})
-		})
-
-		t.Run("odd batch size", func(t *testing.T) {
-			p, _ := New(3)
-			t.Run("batch 0, index 0", func(t *testing.T) {
-				assert.Equal(t, 0, p.OriginalIndex(0, 0))
-			})
-			t.Run("batch 0, index 1", func(t *testing.T) {
-				assert.Equal(t, 1, p.OriginalIndex(0, 1))
-			})
-
-			t.Run("batch 1, index 0", func(t *testing.T) {
-				assert.Equal(t, 3, p.OriginalIndex(1, 0))
-			})
-			t.Run("batch 1, index 1", func(t *testing.T) {
-				assert.Equal(t, 4, p.OriginalIndex(1, 1))
-			})
-		})
-	})
 }

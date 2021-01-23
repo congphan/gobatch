@@ -42,9 +42,6 @@ type Processor interface {
 	// context.Canceled if the context was canceled and it will stop for next batch processing
 	// context.DeadlineExceeded return when the context's deadline passes (timeout)
 	Execute(ctx context.Context, objects interface{}, funcProcess FuncProcess) error
-
-	// OriginalIndex help to convert index of item in that batch to original source
-	OriginalIndex(batchIndex, itemIndex int) int
 }
 
 // processor struct to execute data by batch
@@ -138,8 +135,4 @@ func (p *processor) Execute(ctx context.Context, objects interface{}, funcProces
 			}
 		}
 	}
-}
-
-func (p *processor) OriginalIndex(batchIndex, itemIndex int) int {
-	return (batchIndex * p.batchSize) + itemIndex
 }
