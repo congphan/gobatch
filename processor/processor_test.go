@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -42,8 +43,9 @@ func TestProcessor_Execute(t *testing.T) {
 				p, _ := New(2)
 				nums := []int{5, 6, 7, 8, 9}
 				batchResults := []Batch{}
-				err := p.Execute(context.Background(), nums, func(batch Batch) {
+				err := p.Execute(context.Background(), nums, func(batch Batch) error {
 					batchResults = append(batchResults, batch)
+					return nil
 				})
 				assert.NoError(t, err)
 				assert.EqualValues(t, []Batch{
@@ -66,8 +68,9 @@ func TestProcessor_Execute(t *testing.T) {
 				p, _ := New(2)
 				nums := []int{5, 6, 7, 8}
 				batchResults := []Batch{}
-				err := p.Execute(context.Background(), nums, func(batch Batch) {
+				err := p.Execute(context.Background(), nums, func(batch Batch) error {
 					batchResults = append(batchResults, batch)
+					return nil
 				})
 				assert.NoError(t, err)
 				assert.EqualValues(t, []Batch{
@@ -86,8 +89,9 @@ func TestProcessor_Execute(t *testing.T) {
 				p, _ := New(2)
 				nums := []int{}
 				batchResults := []Batch{}
-				err := p.Execute(context.Background(), nums, func(batch Batch) {
+				err := p.Execute(context.Background(), nums, func(batch Batch) error {
 					batchResults = append(batchResults, batch)
+					return nil
 				})
 				assert.NoError(t, err)
 				assert.EqualValues(t, []Batch{}, batchResults)
@@ -101,8 +105,9 @@ func TestProcessor_Execute(t *testing.T) {
 					ctx, cancel := context.WithCancel(context.Background())
 					cancel()
 					return ctx
-				}(), nums, func(batch Batch) {
+				}(), nums, func(batch Batch) error {
 					batchResults = append(batchResults, batch)
+					return nil
 				})
 				assert.EqualError(t, err, context.Canceled.Error())
 				assert.EqualValues(t, []Batch{}, batchResults)
@@ -119,14 +124,25 @@ func TestProcessor_Execute(t *testing.T) {
 				defer cancel()
 
 				start := time.Now()
-				err := p.Execute(ctx, nums, func(batch Batch) {
+				err := p.Execute(ctx, nums, func(batch Batch) error {
 					batchResults = append(batchResults, batch)
 					time.Sleep(sleepDuration)
+					return nil
 				})
 				taken := time.Since(start)
 				assert.EqualError(t, err, context.DeadlineExceeded.Error())
 				assert.EqualValues(t, []Batch{{data: []int{5, 6}, index: 0}}, batchResults)
 				assert.True(t, taken.Milliseconds() < sleepDuration.Milliseconds()) // expected time executed must lest then sleep duration
+			})
+
+			t.Run("user error", func(t *testing.T) {
+				p, _ := New(2)
+				nums := []int{5, 6, 7, 8, 9}
+
+				err := p.Execute(context.Background(), nums, func(batch Batch) error {
+					return fmt.Errorf("user error")
+				})
+				assert.EqualError(t, err, "user error")
 			})
 		})
 
@@ -134,8 +150,9 @@ func TestProcessor_Execute(t *testing.T) {
 			p, _ := New(2)
 			nums := &[]int{5, 6, 7, 8, 9}
 			batchResults := []Batch{}
-			err := p.Execute(context.Background(), nums, func(batch Batch) {
+			err := p.Execute(context.Background(), nums, func(batch Batch) error {
 				batchResults = append(batchResults, batch)
+				return nil
 			})
 			assert.NoError(t, err)
 			assert.EqualValues(t, []Batch{

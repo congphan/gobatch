@@ -41,6 +41,7 @@ type Processor interface {
 	// ErrNotSliceable if objects is not sliceable
 	// context.Canceled if the context was canceled and it will stop for next batch processing
 	// context.DeadlineExceeded return when the context's deadline passes (timeout)
+	// error return from function executed (funcProcess)
 	Execute(ctx context.Context, objects interface{}, funcProcess FuncProcess) error
 }
 
@@ -64,14 +65,13 @@ func New(batchSize int) (Processor, error) {
 }
 
 // FuncProcess provide signature for function to prcess batch of data
-type FuncProcess func(batch Batch)
+type FuncProcess func(batch Batch) error
 
 func (p *processor) Execute(ctx context.Context, objects interface{}, funcProcess FuncProcess) error {
-	executeFuncProcess := func(batch Batch) chan struct{} {
-		done := make(chan struct{})
+	executeFuncProcess := func(batch Batch) chan error {
+		done := make(chan error)
 		go func() {
-			funcProcess(batch)
-			done <- struct{}{}
+			done <- funcProcess(batch)
 		}()
 		return done
 	}
@@ -131,7 +131,10 @@ func (p *processor) Execute(ctx context.Context, objects interface{}, funcProces
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case <-chDone: // done for a batch
+			case err := <-chDone: // done for a batch
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

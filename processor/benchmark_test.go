@@ -57,49 +57,49 @@ func benchmarkProcessorExecute(sources interface{}, batchSize int, f processor.F
 }
 
 func BenchmarkProcessorExecuteInteger1ThousandElementsBatch100(b *testing.B) {
-	benchmarkProcessorExecute(int1Thousand, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(int1Thousand, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }
 
 func BenchmarkProcessorExecuteInteger10ThousandElementsBatch100(b *testing.B) {
-	benchmarkProcessorExecute(int10Thousand, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(int10Thousand, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }
 
 func BenchmarkProcessorExecuteInteger100ThousandElementsBatch100(b *testing.B) {
-	benchmarkProcessorExecute(int100Thousand, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(int100Thousand, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }
 
 func BenchmarkProcessorExecuteInteger1MilionElementsBatch100(b *testing.B) {
-	benchmarkProcessorExecute(int1Milion, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(int1Milion, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }
 
 func BenchmarkProcessorExecutePersons1ThousandBatch100(b *testing.B) {
-	benchmarkProcessorExecute(person1Thousand, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(person1Thousand, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }
 
 func BenchmarkProcessorExecutePersons10ThousandsBatch100(b *testing.B) {
-	benchmarkProcessorExecute(person10Thousand, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(person10Thousand, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }
 
 func BenchmarkProcessorExecutePersons100ThousandsBatch100(b *testing.B) {
-	benchmarkProcessorExecute(person100Thousand, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(person100Thousand, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }
 
 func BenchmarkProcessorExecutePersons1MilionBatch100(b *testing.B) {
-	benchmarkProcessorExecute(person1Milion, 100, func(batch processor.Batch) {
-
+	benchmarkProcessorExecute(person1Milion, 100, func(batch processor.Batch) error {
+		return nil
 	}, b)
 }

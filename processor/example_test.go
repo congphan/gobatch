@@ -39,12 +39,13 @@ func ExampleProcessor_success() {
 	}
 
 	p, _ := processor.New(2) // separate employees to batch with maximum 2 employees in a batch if enough
-	p.Execute(context.Background(), employees, func(batch processor.Batch) {
+	p.Execute(context.Background(), employees, func(batch processor.Batch) error {
 		data := batch.Data().([]employee)
 		idx := batch.Index()
 
 		fmt.Println("batch index: ", idx)
 		storeEmployees(data)
+		return nil
 	})
 	// Output:
 	// batch index:  0
@@ -60,8 +61,9 @@ func ExampleProcessor_cancel() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // I called cancel() imidiatly to ensure that it always return error cancel
 	// In reality cancel() maybe triggerd from another Go routine so if execute finish before trigger than of course Execute() got no error
-	err := p.Execute(ctx, nums, func(batch processor.Batch) {
+	err := p.Execute(ctx, nums, func(batch processor.Batch) error {
 		// your code
+		return nil
 	})
 	fmt.Println(err) // context.Canceled.
 	// OUTPUT:
@@ -77,16 +79,29 @@ func ExampleProcessor_timeout() {
 	defer cancel()
 
 	p, _ := processor.New(2)
-	err := p.Execute(ctx, nums, func(batch processor.Batch) {
+	err := p.Execute(ctx, nums, func(batch processor.Batch) error {
 		fmt.Println("index: ", batch.Index())
 		fmt.Println("data: ", batch.Data())
 		time.Sleep(sleepDuration)
+		return nil
 	})
 	fmt.Println(err) // context.DeadlineExceeded
 	// OUTPUT:
 	// index:  0
 	// data:  [5 6]
 	// context deadline exceeded
+}
+
+func ExampleProcessor_userError() {
+	p, _ := processor.New(2)
+	nums := []int{5, 6, 7, 8, 9}
+
+	err := p.Execute(context.Background(), nums, func(batch processor.Batch) error {
+		return fmt.Errorf("user error")
+	})
+	fmt.Println(err) // user error
+	// OUTPUT:
+	// user error
 }
 
 func ExampleProcessor_notSliceable() {

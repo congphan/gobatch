@@ -8,6 +8,7 @@ A simple Go library to handle data in batch
 - Excute a function from given data by batch
 - Stop execute next batch when receive cancel signal from given context
 - Stop execute next batch when given context is timeout
+- Stop execute when error return from function executed
 
 ## How to use
 ```
