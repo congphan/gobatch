@@ -1,3 +1,4 @@
+// Package processor define the Processor type, which allow you to execute your given function by batch
 package processor
 
 import (
@@ -7,10 +8,12 @@ import (
 	"sync"
 )
 
-// define error constant
 var (
+	// ErrInvalidBatchSize is returned by the New method if batch size is not positive integer
 	ErrInvalidBatchSize = fmt.Errorf("batch size must be positive integer")
-	ErrNotSliceable     = fmt.Errorf("object not sliceable")
+
+	// ErrNotSliceable is returned by Processor.Execute when it receive source object wich is not sliceable
+	ErrNotSliceable = fmt.Errorf("object not sliceable")
 )
 
 // Batch is batch of data
@@ -29,18 +32,35 @@ func (b *Batch) Index() int {
 	return b.index
 }
 
-// Processor struct to execute data by batch
-type Processor struct {
+// Processor provide interface to handle data by batch
+type Processor interface {
+	// Execute process objects by batch by calling funcProcess: batch is a batch of data, batchIndex is index of batch.
+	// batchIndex will help ful when you need to convert index of item from current batch to original index of source object.
+	//
+	// If Execute is not success then a non-nil error return explain why:
+	// ErrNotSliceable if objects is not sliceable
+	// context.Canceled if the context was canceled and it will stop for next batch processing
+	// context.DeadlineExceeded return when the context's deadline passes (timeout)
+	Execute(ctx context.Context, objects interface{}, funcProcess FuncProcess) error
+
+	// OriginalIndex help to convert index of item in that batch to original source
+	OriginalIndex(batchIndex, itemIndex int) int
+}
+
+// processor struct to execute data by batch
+type processor struct {
 	m         *sync.Mutex
 	batchSize int
 }
 
-// New return batch processor
-func New(batchSize int) (*Processor, error) {
+// New return a Processor which execute data by batch.
+//
+// ErrInvalidBatchSize returned if batch size is non-positive
+func New(batchSize int) (Processor, error) {
 	if batchSize < 1 {
 		return nil, ErrInvalidBatchSize
 	}
-	return &Processor{
+	return &processor{
 		m:         &sync.Mutex{},
 		batchSize: batchSize,
 	}, nil
@@ -49,12 +69,7 @@ func New(batchSize int) (*Processor, error) {
 // FuncProcess provide signature for function to prcess batch of data
 type FuncProcess func(batch Batch)
 
-// Execute process objects by batch by calling funcProcess: batch is a batch of data, batchIndex is index of batch.
-// batchIndex will help ful whenn you need to convert index of item from current batch to original index of source object.
-// error: 1. if objects is not sliceable will return ErrNotSliceable
-// error: 2. error context.Canceled return when it receive cancel singal from context and it will stop for next batch processing
-// error: 3. error context.DeadlineExceeded return when the context's deadline passes (timeout)
-func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProcess FuncProcess) error {
+func (p *processor) Execute(ctx context.Context, objects interface{}, funcProcess FuncProcess) error {
 	executeFuncProcess := func(batch Batch) chan struct{} {
 		done := make(chan struct{})
 		go func() {
@@ -125,7 +140,6 @@ func (p *Processor) Execute(ctx context.Context, objects interface{}, funcProces
 	}
 }
 
-// OriginalIndex help to convert index of item in that batch to original source
-func (p *Processor) OriginalIndex(batchIndex, itemIndex int) int {
+func (p *processor) OriginalIndex(batchIndex, itemIndex int) int {
 	return (batchIndex * p.batchSize) + itemIndex
 }
