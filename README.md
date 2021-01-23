@@ -1,8 +1,15 @@
 # gobatch
 A simple Go library to handle data in batch
 
+## Documentation
+[![Go Reference](https://pkg.go.dev/badge/github.com/congphan/gobatch.svg)](https://pkg.go.dev/github.com/congphan/gobatch)
+
+## Features
+- Excute a function from given data by batch
+- Stop execute next batch when receive cancel signal from given context
+- Stop execute next batch when given context is timeout
+
 ## How to use
-Example
 ```
 import "github.com/congphan/gobatch/processor"
 
@@ -30,7 +37,7 @@ storeEmployees := func(s []employee) {
 }
 
 p, _ := processor.New(2) // separate employees to batch with maximum 2 employees in a batch if enough
-p.Execute(context.Background(), employees, func(batch processor.Batch) {
+err := p.Execute(context.Background(), employees, func(batch processor.Batch) {
     data := batch.Data().([]employee)
     idx := batch.Index()
 
@@ -40,6 +47,9 @@ p.Execute(context.Background(), employees, func(batch processor.Batch) {
 
 ```
 
+## Examples
+[![Go Reference](https://pkg.go.dev/badge/github.com/congphan/gobatch.svg)](https://pkg.go.dev/github.com/congphan/gobatch)
+
 ## Benchmark Results
 | source size| batch size | ns/op | B/op  | allocs/op|
 |:-----------|:-----------|------:|------:|---------:|
@@ -47,6 +57,10 @@ p.Execute(context.Background(), employees, func(batch processor.Batch) {
 |10000       |100         |86139  |12824  |202       |
 |100000      |100         |821887 |128024 |2002      |
 |1000000     |100         |8087827|1280063|20002     |
+
+## Incoming features
+- Provide interface for data source
+- Batch job
 
 ## License
 gobatch is provided under the MIT licence. See LICENSE for more details.
