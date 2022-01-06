@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sync"
 )
 
 var (
@@ -47,7 +46,6 @@ type Processor interface {
 
 // processor struct to execute data by batch
 type processor struct {
-	m         *sync.Mutex
 	batchSize int
 }
 
@@ -59,7 +57,6 @@ func New(batchSize int) (Processor, error) {
 		return nil, ErrInvalidBatchSize
 	}
 	return &processor{
-		m:         &sync.Mutex{},
 		batchSize: batchSize,
 	}, nil
 }
@@ -71,13 +68,14 @@ func (p *processor) Execute(ctx context.Context, objects interface{}, funcProces
 	executeFuncProcess := func(batch Batch) chan error {
 		done := make(chan error)
 		go func() {
-			done <- funcProcess(batch)
+			select {
+			case <-ctx.Done():
+				return
+			case done <- funcProcess(batch):
+			}
 		}()
 		return done
 	}
-
-	p.m.Lock()
-	defer p.m.Unlock()
 
 	var isPointer bool
 
